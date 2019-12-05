@@ -7,14 +7,25 @@ COPY cmd/ cmd/
 ARG KUBEBENCH_VERSION
 RUN GO111MODULE=on CGO_ENABLED=0 go install -a -ldflags "-X github.com/aquasecurity/kube-bench/cmd.KubeBenchVersion=${KUBEBENCH_VERSION} -w"
 
+FROM alpine:3.8 as builder
+ARG K8S_VERSION=v1.14.3
+RUN set -x                  && \
+    apk --update upgrade    && \
+    apk add ca-certificates && \
+    rm -rf /var/cache/apk/* && \
+    wget -O /kubectl https://storage.googleapis.com/kubernetes-release/release/$K8S_VERSION/bin/linux/amd64/kubectl && \
+    chmod +x /kubectl
+
 FROM alpine:3.10 AS run
 WORKDIR /opt/kube-bench/
 # add GNU ps for -C, -o cmd, and --no-headers support
 # https://github.com/aquasecurity/kube-bench/issues/109
 RUN apk --no-cache add procps
+COPY --from=builder /kubectl /kubectl
 COPY --from=build /go/bin/kube-bench /usr/local/bin/kube-bench
 COPY entrypoint.sh .
 COPY cfg/ cfg/
+
 ENTRYPOINT ["./entrypoint.sh"]
 CMD ["install"]
 
