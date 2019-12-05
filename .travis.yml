@@ -21,6 +21,10 @@ script:
   - test -f kube-bench
   - make tests
   - make integration-tests
+  - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+  - docker build -t huma/repository:tagnamek .
+  - docker images
+  - docker push huma/repository:tagnamek
   
 after_success:
   - bash <(curl -s https://codecov.io/bash)
